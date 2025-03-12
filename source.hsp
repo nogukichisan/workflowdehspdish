@@ -1,0 +1,201 @@
+#include "hsp3dish.as"
+
+screen 0, 20 * 16, 30 * 16  ; 320x480の画面
+title "シューティングゲーム"
+
+px = 10  : py = 28  ; プレイヤー初期位置
+score = 0  ; スコア
+gameover = 0  ; ゲームオーバーフラグ
+
+#const MAX_BULLET 5
+dim bullet, MAX_BULLET, 3  ; x, y, 状態（0:未使用 1:発射中）
+
+#const MAX_ENEMY 3
+dim enemy, MAX_ENEMY, 3  ; x, y, 状態（0:未使用 1:出現中）
+
+#const MAX_EBULLET 5
+dim ebullet, MAX_EBULLET, 3  ; x, y, 状態（0:未使用 1:発射中）
+
+tx = px : ty = py  ; タッチ座標
+
+*main
+    if gameover == 1 {
+        goto *gameover
+    }
+
+    redraw 0
+    color 0, 0, 0
+    boxf
+    
+    color 255, 255, 255  ; 文字色（白）
+
+    ; スコア表示
+    pos 10, 10
+    mes "SCORE: " + score
+
+    ; スマホのタッチ入力
+    touch tx, ty, 0
+    
+    ; プレイヤー移動
+    if tx >= 0 {
+        px = tx / 16
+    }
+    
+    ; 弾発射（タップで発射）
+    if ty < py * 16 {
+        repeat MAX_BULLET
+            if bullet(cnt, 2) == 0 {
+                bullet(cnt, 0) = px
+                bullet(cnt, 1) = py - 1
+                bullet(cnt, 2) = 1
+                break
+            }
+        loop
+    }
+    
+    ; 弾移動
+    repeat MAX_BULLET
+        if bullet(cnt, 2) == 1 {
+            bullet(cnt, 1) -= 1
+            if bullet(cnt, 1) < 0 : bullet(cnt, 2) = 0
+        }
+    loop
+
+    ; 敵の発生
+    repeat MAX_ENEMY
+        if enemy(cnt, 2) == 0 {
+            enemy(cnt, 0) = rnd(19)
+            enemy(cnt, 1) = 0
+            enemy(cnt, 2) = 1
+        }
+    loop
+    
+    ; 敵の移動
+    repeat MAX_ENEMY
+        if enemy(cnt, 2) == 1 {
+            enemy(cnt, 1) += 1
+            if enemy(cnt, 1) > 29 {
+                enemy(cnt, 2) = 0
+            }
+        }
+    loop
+
+    ; 敵の弾発射（ランダムで撃つ）
+    repeat MAX_ENEMY
+        if enemy(cnt, 2) == 1 & rnd(30) == 0 {  ; 確率30分の1で発射
+            repeat MAX_EBULLET
+                if ebullet(cnt2, 2) == 0 {
+                    ebullet(cnt2, 0) = enemy(cnt, 0)
+                    ebullet(cnt2, 1) = enemy(cnt, 1) + 1
+                    ebullet(cnt2, 2) = 1
+                    break
+                }
+            loop
+        }
+    loop
+
+    ; 敵の弾移動
+    repeat MAX_EBULLET
+        if ebullet(cnt, 2) == 1 {
+            ebullet(cnt, 1) += 1
+            if ebullet(cnt, 1) > 29 {
+                ebullet(cnt, 2) = 0
+            }
+        }
+    loop
+
+    ; 当たり判定（弾と敵）
+    repeat MAX_BULLET
+        if bullet(cnt, 2) == 1 {
+            repeat MAX_ENEMY
+                if enemy(cnt2, 2) == 1 {
+                    if (bullet(cnt, 0) == enemy(cnt2, 0)) & (bullet(cnt, 1) == enemy(cnt2, 1)) {
+                        bullet(cnt, 2) = 0
+                        enemy(cnt2, 2) = 0
+                        score += 10  ; スコア加算
+                    }
+                }
+            loop
+        }
+    loop
+
+    ; 当たり判定（敵とプレイヤー）
+    repeat MAX_ENEMY
+        if enemy(cnt, 2) == 1 {
+            if (enemy(cnt, 0) == px) & (enemy(cnt, 1) == py) {
+                gameover = 1  ; ゲームオーバー
+            }
+        }
+    loop
+
+    ; 当たり判定（敵の弾とプレイヤー）
+    repeat MAX_EBULLET
+        if ebullet(cnt, 2) == 1 {
+            if (ebullet(cnt, 0) == px) & (ebullet(cnt, 1) == py) {
+                gameover = 1  ; ゲームオーバー
+            }
+        }
+    loop
+
+    ; 画面表示
+    ; 敵
+    repeat MAX_ENEMY
+        if enemy(cnt, 2) == 1 {
+            pos enemy(cnt, 0) * 16, enemy(cnt, 1) * 16
+            mes "T"
+        }
+    loop
+
+    ; 弾
+    repeat MAX_BULLET
+        if bullet(cnt, 2) == 1 {
+            pos bullet(cnt, 0) * 16, bullet(cnt, 1) * 16
+            mes "I"
+        }
+    loop
+
+    ; 敵の弾
+    color 255, 0, 0  ; 赤
+    repeat MAX_EBULLET
+        if ebullet(cnt, 2) == 1 {
+            pos ebullet(cnt, 0) * 16, ebullet(cnt, 1) * 16
+            mes "E"
+        }
+    loop
+    color 255, 255, 255  ; 白に戻す
+
+    ; プレイヤー
+    pos px * 16, py * 16
+    mes "P"
+
+    redraw 1
+    await 100
+    goto *main
+
+*gameover
+    redraw 0
+    color 0, 0, 0
+    boxf
+    color 255, 0, 0
+    pos 80, 200
+    mes "GAME OVER"
+    pos 80, 230
+    mes "SCORE: " + score
+    pos 80, 260
+    mes "タップでリトライ"
+    redraw 1
+
+    ; タップでリトライ
+    *wait_tap
+    touch tx, ty, 0
+    if tx >= 0 {
+        gameover = 0
+        score = 0
+        px = 10 : py = 28
+        dim bullet, MAX_BULLET, 3
+        dim enemy, MAX_ENEMY, 3
+        dim ebullet, MAX_EBULLET, 3
+        goto *main
+    }
+    await 100
+    goto *wait_tap
