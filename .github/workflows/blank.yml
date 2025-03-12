@@ -25,8 +25,8 @@ jobs:
           cd hsp3/hsp3dish
           ..\hsp3\hspcmp.exe ..\source.hsp
 
-      - name: 変換結果をアップロード
-        uses: actions/upload-artifact@v4
-        with:
-          name: Converted-HSP3Dish
-          path: hsp3/hsp3dish/*.ax
+- name: 変換結果をアップロード
+  uses: actions/upload-artifact@v4
+  with:
+    name: Converted-HSP3Dish
+    path: hsp3/hsp3dish/*.ax
