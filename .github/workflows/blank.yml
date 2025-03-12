@@ -1,0 +1,32 @@
+name: Convert HSP3 to HSP3Dish
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:  # 手動実行も可能
+
+jobs:
+  convert:
+    runs-on: windows-latest
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v3
+
+      - name: HSP3 をダウンロード & セットアップ
+        run: |
+          Invoke-WebRequest -Uri "https://www.onionsoft.net/hsp/v36/hsp36_3.zip" -OutFile "hsp3.zip"
+          Expand-Archive -Path "hsp3.zip" -DestinationPath "hsp3"
+
+      - name: HSP3Dish に変換
+        run: |
+          cd hsp3/hsp3dish
+          ..\hsp3\hspcmp.exe ..\source.hsp
+
+      - name: 変換結果をアップロード
+        uses: actions/upload-artifact@v3
+        with:
+          name: Converted-HSP3Dish
+          path: hsp3/hsp3dish/*.ax
